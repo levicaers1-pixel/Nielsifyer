@@ -7,15 +7,19 @@ same opinions, his voice.
 ## Use it
 
 Open `index.html` in a browser (or serve the folder with any static file
-server — no build step needed). Paste an Anthropic API key (stored only in
-your browser's `localStorage`, never sent anywhere but `api.anthropic.com`),
-paste the original review text, optionally note the course and who wrote it,
-and click **Nielsify**.
+server — no build step needed). Get a free Gemini API key at
+[aistudio.google.com/apikey](https://aistudio.google.com/apikey) (no credit
+card required), paste it in, paste the original review text, optionally note
+the course and who wrote it, and click **Nielsify**.
+
+The key is stored only in your browser's `localStorage` and sent only to
+`generativelanguage.googleapis.com` — never committed to this repo, never
+sent anywhere else. A friend can use their own free Gemini key the same way.
 
 ## How it works
 
-`app.js` sends the original review straight to the Anthropic Messages API
-from the browser, with a system prompt that encodes Niels's voice (short,
+`app.js` sends the original review straight to the Gemini API from the
+browser, with a system prompt that encodes Niels's voice (short,
 declarative, price-quality focused, personal-history framing) and a hard
 rule: it rewrites what's already there — it does not add new facts,
 experiences, or opinions beyond what the source review states.

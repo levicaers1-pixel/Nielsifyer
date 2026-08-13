@@ -84,7 +84,7 @@ form.addEventListener("submit", async (e) => {
   const original = $("original").value.trim();
 
   if (!apiKey) {
-    showError("Vul je Anthropic API key in — die heb je nodig om te herschrijven.");
+    showError("Vul je Gemini API key in — die heb je nodig om te herschrijven.");
     return;
   }
   if (!original) {
@@ -105,21 +105,21 @@ form.addEventListener("submit", async (e) => {
   setLoading(true);
 
   try {
-    const response = await fetch("https://api.anthropic.com/v1/messages", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        "x-api-key": apiKey,
-        "anthropic-version": "2023-06-01",
-        "anthropic-dangerous-direct-browser-access": "true",
-      },
-      body: JSON.stringify({
-        model: "claude-sonnet-5",
-        max_tokens: 600,
-        system: SYSTEM_PROMPT,
-        messages: [{ role: "user", content: userMessage }],
-      }),
-    });
+    const model = "gemini-2.5-flash";
+    const response = await fetch(
+      `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${encodeURIComponent(apiKey)}`,
+      {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          system_instruction: { parts: [{ text: SYSTEM_PROMPT }] },
+          contents: [{ role: "user", parts: [{ text: userMessage }] }],
+          generationConfig: { maxOutputTokens: 600 },
+        }),
+      }
+    );
 
     if (!response.ok) {
       const errBody = await response.json().catch(() => ({}));
@@ -127,7 +127,8 @@ form.addEventListener("submit", async (e) => {
     }
 
     const data = await response.json();
-    const text = data.content?.map((block) => block.text).join("") || "(geen tekst ontvangen)";
+    const text =
+      data.candidates?.[0]?.content?.parts?.map((part) => part.text).join("") || "(geen tekst ontvangen)";
 
     resultText.textContent = text;
     resultBox.classList.remove("hidden");

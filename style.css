@@ -91,6 +91,10 @@ label {
   margin-top: 0.2rem;
 }
 
+.hint a {
+  color: var(--accent);
+}
+
 input[type="text"],
 input[type="password"],
 select,
