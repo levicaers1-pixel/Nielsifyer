@@ -1,0 +1,71 @@
+<!doctype html>
+<html lang="nl">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Nielsifyer</title>
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <div class="page">
+    <header class="hero">
+      <span class="eyebrow">PAMPAS · Interne tool</span>
+      <h1>Nielsifyer 💶</h1>
+      <p class="subtitle">
+        Plak Niels z'n ruwe scores en notities. Krijg terug een review in zijn stem —
+        kort, eerlijk, prijs-kwaliteit voorop.
+      </p>
+    </header>
+
+    <main class="card">
+      <form id="form">
+        <div class="field">
+          <label for="apiKey">
+            Anthropic API key
+            <span class="hint">Blijft lokaal in je browser (localStorage), wordt nergens anders opgeslagen.</span>
+          </label>
+          <input type="password" id="apiKey" placeholder="sk-ant-..." autocomplete="off" />
+        </div>
+
+        <div class="field">
+          <label for="course">Baan</label>
+          <input type="text" id="course" placeholder="bv. Rinkven Golf & Country Club" required />
+        </div>
+
+        <div class="field-row">
+          <div class="field">
+            <label for="score">Score (optioneel)</label>
+            <input type="text" id="score" placeholder="bv. 89/100" />
+          </div>
+        </div>
+
+        <div class="field">
+          <label for="notes">
+            Notities / trefwoorden van Niels
+            <span class="hint">Ruw mag. Alles wat hij echt gezegd of gescoord heeft — niets verzinnen.</span>
+          </label>
+          <textarea id="notes" rows="6" placeholder="bv. lid sinds 2015, greenfee te hoog voor wat je krijgt, hole 7 een parel, personeel super vriendelijk..." required></textarea>
+        </div>
+
+        <button type="submit" id="submitBtn">Nielsify</button>
+      </form>
+
+      <div id="result" class="result hidden">
+        <div class="result-header">
+          <span>Resultaat</span>
+          <button type="button" id="copyBtn" class="ghost-btn">Kopieer</button>
+        </div>
+        <div id="resultText" class="result-text"></div>
+      </div>
+
+      <div id="error" class="error hidden"></div>
+    </main>
+
+    <footer>
+      <p>Gebouwd voor intern gebruik bij PAMPAS. Genereert alleen tekst op basis van wat je zelf invult.</p>
+    </footer>
+  </div>
+
+  <script src="app.js"></script>
+</body>
+</html>
