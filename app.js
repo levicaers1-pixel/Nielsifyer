@@ -1,77 +1,62 @@
-// Purely local text assembly — no network calls, no AI. Every sentence is
-// either a fixed pattern derived from Niels's real quotes, or text the user
-// typed in verbatim. Nothing is invented.
+const SYSTEM_PROMPT = `You are the "Nielsifyer" — you rewrite an existing golf course review, written
+by one of Niels's PAMPAS co-hosts (Lars or Levi), into how Niels Jacoby — the
+third host — would have written it.
 
-const PRICE_PHRASES = {
-  great: "Wat je betaalt tegenover wat je krijgt, klopt hier volledig.",
-  fair: "De greenfee is niet goedkoop, maar wel eerlijk voor wat je ervoor terugkrijgt.",
-  expensive: "Voor die prijs verwacht je meer terug.",
-};
+## Task
 
-const DEFAULT_VERDICT_WORD = {
-  gemiddeld: "OK",
-  laag: "Matig",
-};
+You will be given the original review text, and optionally which course it's
+about and which host wrote it. Rewrite it in Niels's voice while preserving
+every fact, opinion, and experience stated in the original. Do not add
+anything that wasn't there. Do not drop material information — specific
+holes, numbers, complaints, or praise should survive the rewrite, even if
+compressed into a shorter mention.
 
-function trimSentence(text) {
-  const t = text.trim();
-  if (!t) return "";
-  return /[.!?]$/.test(t) ? t : `${t}.`;
-}
+## Niels's voice profile
 
-function generateReview({ course, score, enthusiasm, capsWord, price, personal, detail, verdictWord }) {
-  const sentences = [];
+- Persona: "De Pragmaticus." Handicap 2.4. He judges a round primarily on
+  price-to-quality and course condition. Scenery, facilities, and hospitality
+  matter far less to him than to his co-hosts — so if the source leans hard
+  on those, compress that part and foreground whatever the source says about
+  value or condition instead.
+- Sentence style: Short and declarative. No throat-clearing, no scene-setting
+  preamble — get to the verdict fast.
+- Evidence style: Personal history over technical analysis, if the source
+  gives you any (membership length, years played, a specific hole). Keep
+  that framing front and center.
+- Enthusiasm: Genuine excitement gets ONE capitalized word for emphasis
+  (e.g. "GEWELDIGE"), used sparingly — only if the source is genuinely
+  enthusiastic. Never invent enthusiasm the source doesn't have.
+- When the source is unimpressed: Blunt and brief. Don't pad disappointment
+  with diplomacy — flatten it the way he would.
+- Value framing: Even praise should circle back to whether the greenfee was
+  justified, if the source gives any signal about price or value.
+- Language: Dutch (Flemish register), matching the rest of the site.
 
-  if (enthusiasm === "gemiddeld" || enthusiasm === "laag") {
-    const word = (verdictWord && verdictWord.trim()) || DEFAULT_VERDICT_WORD[enthusiasm];
-    sentences.push(`${word}.`);
-    sentences.push(PRICE_PHRASES[price]);
-    if (personal) sentences.push(trimSentence(personal));
-    if (detail) sentences.push(trimSentence(detail));
-  } else if (enthusiasm === "hoog") {
-    if (capsWord && capsWord.trim()) {
-      sentences.push(`${course} is door de jaren heen een ${capsWord.trim().toUpperCase()} baan geworden.`);
-    } else {
-      sentences.push(`${course} is voor Niels een van de sterkere banen op de lijst.`);
-    }
-    if (personal) sentences.push(trimSentence(personal));
-    if (detail) sentences.push(trimSentence(detail));
-    sentences.push(PRICE_PHRASES[price]);
-  } else {
-    // positief
-    sentences.push(`${course} kan op flink wat waardering van Niels rekenen.`);
-    if (personal) sentences.push(trimSentence(personal));
-    if (detail) sentences.push(trimSentence(detail));
-    sentences.push(PRICE_PHRASES[price]);
-  }
+## Hard rules
 
-  let output = sentences.filter(Boolean).join(" ");
-  if (score && score.trim()) {
-    output += `\n\nScore: ${score.trim()}`;
-  }
-  return output;
-}
+1. Preserve all facts, opinions, and experiences from the source. Never
+   invent a new experience, score, or detail that isn't in the original.
+2. You may re-prioritize which details get emphasis, but don't erase
+   substantive content — compress secondary details rather than deleting them.
+3. Convert flowery or descriptive language into short declarative statements.
+4. Don't compare to Lars or Levi by name unless the source already does.
+5. Output only the rewritten review text — no preamble, no explanation of
+   your changes, no markdown headers.`;
 
 const $ = (id) => document.getElementById(id);
 
+const apiKeyInput = $("apiKey");
 const form = $("form");
 const submitBtn = $("submitBtn");
 const resultBox = $("result");
 const resultText = $("resultText");
 const errorBox = $("error");
 const copyBtn = $("copyBtn");
-const enthusiasmSelect = $("enthusiasm");
-const capsWordField = $("capsWordField");
-const verdictWordField = $("verdictWordField");
 
-function updateConditionalFields() {
-  const value = enthusiasmSelect.value;
-  capsWordField.classList.toggle("hidden", value !== "hoog");
-  verdictWordField.classList.toggle("hidden", value !== "gemiddeld" && value !== "laag");
-}
+const STORAGE_KEY = "nielsifyer_api_key";
 
-enthusiasmSelect.addEventListener("change", updateConditionalFields);
-updateConditionalFields();
+const savedKey = localStorage.getItem(STORAGE_KEY);
+if (savedKey) apiKeyInput.value = savedKey;
 
 function showError(message) {
   errorBox.textContent = message;
@@ -83,36 +68,74 @@ function clearError() {
   errorBox.textContent = "";
 }
 
-form.addEventListener("submit", (e) => {
+function setLoading(loading) {
+  submitBtn.disabled = loading;
+  submitBtn.textContent = loading ? "Bezig..." : "Nielsify";
+}
+
+form.addEventListener("submit", async (e) => {
   e.preventDefault();
   clearError();
   resultBox.classList.add("hidden");
 
+  const apiKey = apiKeyInput.value.trim();
   const course = $("course").value.trim();
-  const score = $("score").value.trim();
-  const enthusiasm = enthusiasmSelect.value;
-  const capsWord = $("capsWord").value.trim();
-  const price = $("price").value;
-  const personal = $("personal").value.trim();
-  const detail = $("detail").value.trim();
-  const verdictWord = $("verdictWord").value.trim();
+  const sourceHost = $("sourceHost").value;
+  const original = $("original").value.trim();
 
-  if (!course) {
-    showError("Vul een baan in.");
+  if (!apiKey) {
+    showError("Vul je Anthropic API key in — die heb je nodig om te herschrijven.");
     return;
   }
-  if (!enthusiasm) {
-    showError("Kies een niveau van enthousiasme.");
-    return;
-  }
-  if (!price) {
-    showError("Kies een prijs-kwaliteit oordeel.");
+  if (!original) {
+    showError("Plak de originele review.");
     return;
   }
 
-  const text = generateReview({ course, score, enthusiasm, capsWord, price, personal, detail, verdictWord });
-  resultText.textContent = text;
-  resultBox.classList.remove("hidden");
+  localStorage.setItem(STORAGE_KEY, apiKey);
+
+  const userMessage = [
+    course ? `Course: ${course}` : null,
+    sourceHost ? `Original written by: ${sourceHost}` : null,
+    `Original review:\n${original}`,
+  ]
+    .filter(Boolean)
+    .join("\n");
+
+  setLoading(true);
+
+  try {
+    const response = await fetch("https://api.anthropic.com/v1/messages", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "x-api-key": apiKey,
+        "anthropic-version": "2023-06-01",
+        "anthropic-dangerous-direct-browser-access": "true",
+      },
+      body: JSON.stringify({
+        model: "claude-sonnet-5",
+        max_tokens: 600,
+        system: SYSTEM_PROMPT,
+        messages: [{ role: "user", content: userMessage }],
+      }),
+    });
+
+    if (!response.ok) {
+      const errBody = await response.json().catch(() => ({}));
+      throw new Error(errBody?.error?.message || `API-fout (${response.status})`);
+    }
+
+    const data = await response.json();
+    const text = data.content?.map((block) => block.text).join("") || "(geen tekst ontvangen)";
+
+    resultText.textContent = text;
+    resultBox.classList.remove("hidden");
+  } catch (err) {
+    showError(err.message || "Er ging iets mis bij het herschrijven.");
+  } finally {
+    setLoading(false);
+  }
 });
 
 copyBtn.addEventListener("click", async () => {
