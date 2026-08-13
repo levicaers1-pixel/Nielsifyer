@@ -12,39 +12,77 @@
       <span class="eyebrow">PAMPAS · Interne tool</span>
       <h1>Nielsifyer 💶</h1>
       <p class="subtitle">
-        Plak Niels z'n ruwe scores en notities. Krijg terug een review in zijn stem —
-        kort, eerlijk, prijs-kwaliteit voorop.
+        Vul in wat je al van Niels weet. Alles wordt lokaal samengesteld uit vaste
+        zinspatronen op basis van zijn echte quotes — geen AI, geen API key nodig.
       </p>
     </header>
 
     <main class="card">
-      <form id="form">
+      <form id="form" autocomplete="off">
         <div class="field">
-          <label for="apiKey">
-            Anthropic API key
-            <span class="hint">Blijft lokaal in je browser (localStorage), wordt nergens anders opgeslagen.</span>
+          <label for="course">Baan *</label>
+          <input type="text" id="course" placeholder="bv. Rinkven Golf & Country Club" autocomplete="off" required />
+        </div>
+
+        <div class="field">
+          <label for="score">Score (optioneel)</label>
+          <input type="text" id="score" placeholder="bv. 89/100" autocomplete="off" />
+        </div>
+
+        <div class="field">
+          <label for="enthusiasm">
+            Enthousiasme *
+            <span class="hint">Hoe stond hij er echt tegenover?</span>
           </label>
-          <input type="password" id="apiKey" placeholder="sk-ant-..." autocomplete="off" />
+          <select id="enthusiasm" required>
+            <option value="">— Kies —</option>
+            <option value="hoog">Erg enthousiast</option>
+            <option value="positief">Positief</option>
+            <option value="gemiddeld">Gemiddeld / OK</option>
+            <option value="laag">Teleurstellend</option>
+          </select>
         </div>
 
-        <div class="field">
-          <label for="course">Baan</label>
-          <input type="text" id="course" placeholder="bv. Rinkven Golf & Country Club" required />
-        </div>
-
-        <div class="field-row">
-          <div class="field">
-            <label for="score">Score (optioneel)</label>
-            <input type="text" id="score" placeholder="bv. 89/100" />
-          </div>
-        </div>
-
-        <div class="field">
-          <label for="notes">
-            Notities / trefwoorden van Niels
-            <span class="hint">Ruw mag. Alles wat hij echt gezegd of gescoord heeft — niets verzinnen.</span>
+        <div class="field" id="capsWordField">
+          <label for="capsWord">
+            Woord van enthousiasme (bij "erg enthousiast")
+            <span class="hint">Eén woord, wordt in hoofdletters gezet — bv. GEWELDIGE, PRACHTIG.</span>
           </label>
-          <textarea id="notes" rows="6" placeholder="bv. lid sinds 2015, greenfee te hoog voor wat je krijgt, hole 7 een parel, personeel super vriendelijk..." required></textarea>
+          <input type="text" id="capsWord" placeholder="bv. geweldige" autocomplete="off" />
+        </div>
+
+        <div class="field">
+          <label for="price">Prijs-kwaliteit *</label>
+          <select id="price" required>
+            <option value="">— Kies —</option>
+            <option value="great">Uitstekende prijs-kwaliteit</option>
+            <option value="fair">Correcte prijs voor wat je krijgt</option>
+            <option value="expensive">Te duur voor wat je krijgt</option>
+          </select>
+        </div>
+
+        <div class="field">
+          <label for="personal">
+            Persoonlijke ervaring (optioneel)
+            <span class="hint">Letterlijk wat Niels zei — wordt woordelijk overgenomen. Bv. "Ik loop hier nu al 18 jaar rond."</span>
+          </label>
+          <input type="text" id="personal" placeholder="bv. Lid sinds 2015, speelt er wekelijks." autocomplete="off" />
+        </div>
+
+        <div class="field">
+          <label for="detail">
+            Uitgelicht detail (optioneel)
+            <span class="hint">Ook letterlijk overgenomen. Bv. "Hole 11 is het absolute hoogtepunt."</span>
+          </label>
+          <input type="text" id="detail" placeholder="bv. Hole 7 is een parel, de rest valt wat tegen." autocomplete="off" />
+        </div>
+
+        <div class="field" id="verdictWordField">
+          <label for="verdictWord">
+            Kort verdict-woord (optioneel, bij gemiddeld/teleurstellend)
+            <span class="hint">Standaard "OK" of "Matig" — vul in als Niels een ander woord gebruikte.</span>
+          </label>
+          <input type="text" id="verdictWord" placeholder="bv. Prima, Zwak, Niets bijzonders" autocomplete="off" />
         </div>
 
         <button type="submit" id="submitBtn">Nielsify</button>
@@ -59,10 +97,20 @@
       </div>
 
       <div id="error" class="error hidden"></div>
+
+      <details class="reference">
+        <summary>Referentie — zijn echte quotes</summary>
+        <ul>
+          <li>"Royal Antwerp is voor mij numero uno van België! Elke golfronde daar is prachtig en een ongekend genot."</li>
+          <li>"Ternesse is door de jaren heen een GEWELDIGE baan geworden. Ik loop daar nu al 18 jaar rond en heb de baan jaar na jaar zien groeien."</li>
+          <li>"De baan is speciaal, hier heb je het gevoel dat op weinig ruimte 18 holes moesten passen. Hole 11 is het absolute hoogte punt van de baan."</li>
+          <li>Terse verdicts voor middelmatige banen: "OK", "Matig".</li>
+        </ul>
+      </details>
     </main>
 
     <footer>
-      <p>Gebouwd voor intern gebruik bij PAMPAS. Genereert alleen tekst op basis van wat je zelf invult.</p>
+      <p>Stelt tekst samen uit vaste zinspatronen en wat jij invult — verzint nooit ervaringen, meningen of scores.</p>
     </footer>
   </div>
 

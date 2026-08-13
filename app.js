@@ -1,60 +1,77 @@
-const SYSTEM_PROMPT = `You are the "Nielsifyer" — you rewrite raw golf course notes and scores into
-short review copy in the voice of Niels Jacoby, one of the three hosts of
-the PAMPAS golf podcast (indepampas.be).
+// Purely local text assembly — no network calls, no AI. Every sentence is
+// either a fixed pattern derived from Niels's real quotes, or text the user
+// typed in verbatim. Nothing is invented.
 
-## Voice profile
+const PRICE_PHRASES = {
+  great: "Wat je betaalt tegenover wat je krijgt, klopt hier volledig.",
+  fair: "De greenfee is niet goedkoop, maar wel eerlijk voor wat je ervoor terugkrijgt.",
+  expensive: "Voor die prijs verwacht je meer terug.",
+};
 
-- Persona: "De Pragmaticus." Handicap 2.4. He judges a round primarily on
-  price-to-quality (his single strongest weighting) and course condition.
-  Scenery, facilities, and hospitality matter far less to him than to his
-  co-hosts.
-- Sentence style: Short and declarative. No throat-clearing, no scene-
-  setting preamble — he gets to the verdict fast.
-- Evidence style: Personal history over technical analysis. He reaches for
-  "I've played this for 18 years" rather than describing turf conditions or
-  routing theory. If you're given a fact like membership length, years played,
-  or a specific hole, use it — that's exactly his register.
-- Enthusiasm: Genuine excitement gets ONE capitalized word for emphasis
-  (e.g. "GEWELDIGE"), used sparingly. Never more than one per note, never for
-  lukewarm opinions — it would stop meaning anything.
-- When unimpressed: Blunt and brief. He doesn't pad disappointment with
-  diplomacy. A mediocre course can get a one- or two-word verdict ("OK",
-  "Matig") rather than a paragraph of hedging.
-- Value framing: Even praise circles back to whether the greenfee was
-  justified. It's the lens everything passes through.
-- Language: Dutch (Flemish register), matching the rest of the site.
+const DEFAULT_VERDICT_WORD = {
+  gemiddeld: "OK",
+  laag: "Matig",
+};
 
-## Hard rules
+function trimSentence(text) {
+  const t = text.trim();
+  if (!t) return "";
+  return /[.!?]$/.test(t) ? t : `${t}.`;
+}
 
-1. Never invent experiences, facts, or opinions that weren't given to you
-   in the input. You are phrasing what Niels actually thinks, not guessing
-   what he might think. If the input doesn't mention a detail (a specific
-   hole, a membership, a price reaction), don't add one.
-2. Never invent or alter numeric scores. If a score is provided, you may
-   reference it in prose but do not change it or state a different one.
-3. If the input notes are thin, keep the output thin. A short, flat verdict
-   is more authentic to him than a padded-out paragraph.
-4. Don't use other hosts' voices or compare to Lars/Levi unless the input
-   explicitly gives you that comparison.
-5. Output only the review text (one short paragraph, optionally followed by
-   a one-line pull quote in his voice) — no preamble, no explanation of your
-   choices, no markdown headers.`;
+function generateReview({ course, score, enthusiasm, capsWord, price, personal, detail, verdictWord }) {
+  const sentences = [];
+
+  if (enthusiasm === "gemiddeld" || enthusiasm === "laag") {
+    const word = (verdictWord && verdictWord.trim()) || DEFAULT_VERDICT_WORD[enthusiasm];
+    sentences.push(`${word}.`);
+    sentences.push(PRICE_PHRASES[price]);
+    if (personal) sentences.push(trimSentence(personal));
+    if (detail) sentences.push(trimSentence(detail));
+  } else if (enthusiasm === "hoog") {
+    if (capsWord && capsWord.trim()) {
+      sentences.push(`${course} is door de jaren heen een ${capsWord.trim().toUpperCase()} baan geworden.`);
+    } else {
+      sentences.push(`${course} is voor Niels een van de sterkere banen op de lijst.`);
+    }
+    if (personal) sentences.push(trimSentence(personal));
+    if (detail) sentences.push(trimSentence(detail));
+    sentences.push(PRICE_PHRASES[price]);
+  } else {
+    // positief
+    sentences.push(`${course} kan op flink wat waardering van Niels rekenen.`);
+    if (personal) sentences.push(trimSentence(personal));
+    if (detail) sentences.push(trimSentence(detail));
+    sentences.push(PRICE_PHRASES[price]);
+  }
+
+  let output = sentences.filter(Boolean).join(" ");
+  if (score && score.trim()) {
+    output += `\n\nScore: ${score.trim()}`;
+  }
+  return output;
+}
 
 const $ = (id) => document.getElementById(id);
 
-const apiKeyInput = $("apiKey");
 const form = $("form");
 const submitBtn = $("submitBtn");
 const resultBox = $("result");
 const resultText = $("resultText");
 const errorBox = $("error");
 const copyBtn = $("copyBtn");
+const enthusiasmSelect = $("enthusiasm");
+const capsWordField = $("capsWordField");
+const verdictWordField = $("verdictWordField");
 
-const STORAGE_KEY = "nielsifyer_api_key";
+function updateConditionalFields() {
+  const value = enthusiasmSelect.value;
+  capsWordField.classList.toggle("hidden", value !== "hoog");
+  verdictWordField.classList.toggle("hidden", value !== "gemiddeld" && value !== "laag");
+}
 
-// Restore a saved key so it doesn't need to be re-entered every visit.
-const savedKey = localStorage.getItem(STORAGE_KEY);
-if (savedKey) apiKeyInput.value = savedKey;
+enthusiasmSelect.addEventListener("change", updateConditionalFields);
+updateConditionalFields();
 
 function showError(message) {
   errorBox.textContent = message;
@@ -66,74 +83,36 @@ function clearError() {
   errorBox.textContent = "";
 }
 
-function setLoading(loading) {
-  submitBtn.disabled = loading;
-  submitBtn.textContent = loading ? "Bezig..." : "Nielsify";
-}
-
-form.addEventListener("submit", async (e) => {
+form.addEventListener("submit", (e) => {
   e.preventDefault();
   clearError();
   resultBox.classList.add("hidden");
 
-  const apiKey = apiKeyInput.value.trim();
   const course = $("course").value.trim();
   const score = $("score").value.trim();
-  const notes = $("notes").value.trim();
+  const enthusiasm = enthusiasmSelect.value;
+  const capsWord = $("capsWord").value.trim();
+  const price = $("price").value;
+  const personal = $("personal").value.trim();
+  const detail = $("detail").value.trim();
+  const verdictWord = $("verdictWord").value.trim();
 
-  if (!apiKey) {
-    showError("Vul je Anthropic API key in — die heb je nodig om tekst te genereren.");
+  if (!course) {
+    showError("Vul een baan in.");
     return;
   }
-  if (!course || !notes) {
-    showError("Baan en notities zijn verplicht.");
+  if (!enthusiasm) {
+    showError("Kies een niveau van enthousiasme.");
+    return;
+  }
+  if (!price) {
+    showError("Kies een prijs-kwaliteit oordeel.");
     return;
   }
 
-  localStorage.setItem(STORAGE_KEY, apiKey);
-
-  const userMessage = [
-    `Course: ${course}`,
-    score ? `Score(s): ${score}` : null,
-    `Notes/keywords from Niels: ${notes}`,
-  ]
-    .filter(Boolean)
-    .join("\n");
-
-  setLoading(true);
-
-  try {
-    const response = await fetch("https://api.anthropic.com/v1/messages", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        "x-api-key": apiKey,
-        "anthropic-version": "2023-06-01",
-        "anthropic-dangerous-direct-browser-access": "true",
-      },
-      body: JSON.stringify({
-        model: "claude-sonnet-5",
-        max_tokens: 400,
-        system: SYSTEM_PROMPT,
-        messages: [{ role: "user", content: userMessage }],
-      }),
-    });
-
-    if (!response.ok) {
-      const errBody = await response.json().catch(() => ({}));
-      throw new Error(errBody?.error?.message || `API-fout (${response.status})`);
-    }
-
-    const data = await response.json();
-    const text = data.content?.map((block) => block.text).join("") || "(geen tekst ontvangen)";
-
-    resultText.textContent = text;
-    resultBox.classList.remove("hidden");
-  } catch (err) {
-    showError(err.message || "Er ging iets mis bij het genereren.");
-  } finally {
-    setLoading(false);
-  }
+  const text = generateReview({ course, score, enthusiasm, capsWord, price, personal, detail, verdictWord });
+  resultText.textContent = text;
+  resultBox.classList.remove("hidden");
 });
 
 copyBtn.addEventListener("click", async () => {

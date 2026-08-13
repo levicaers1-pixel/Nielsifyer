@@ -1,22 +1,23 @@
 # Nielsifyer
 
-A tiny, no-build static site that turns Niels's raw golf course scores and
-notes into review copy written in his voice.
+A tiny, no-build, no-API static site that turns structured facts about a
+golf course into review copy in Niels's voice.
 
 ## Use it
 
 Open `index.html` in a browser (or serve the folder with any static file
-server — no build step needed). Paste an Anthropic API key (stored only in
-your browser's `localStorage`, never sent anywhere but `api.anthropic.com`),
-fill in the course, score, and Niels's raw notes, and click **Nielsify**.
+server — no build step, no dependencies, no API key). Fill in the course,
+how enthusiastic he was, his price-quality verdict, and any real quotes or
+details he gave — click **Nielsify**.
 
 ## How it works
 
-`app.js` sends your input straight to the Anthropic Messages API from the
-browser, using a system prompt that encodes Niels's voice (short,
-declarative, price-quality focused, personal-history framing) and a hard
-rule: it only phrases what you give it — it does not invent experiences,
-opinions, or scores.
+`app.js` assembles the output entirely locally, from a small set of fixed
+sentence patterns modeled on his real quotes (see the "Referentie" section
+on the page itself). There is no AI call and no network request — every
+sentence is either one of those fixed patterns or text you typed in
+verbatim. It can't invent an experience, opinion, or score that wasn't
+given to it.
 
 ## Deploying
 

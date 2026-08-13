@@ -93,6 +93,7 @@ label {
 
 input[type="text"],
 input[type="password"],
+select,
 textarea {
   width: 100%;
   padding: 0.65rem 0.8rem;
@@ -105,6 +106,7 @@ textarea {
 }
 
 input:focus,
+select:focus,
 textarea:focus {
   outline: none;
   border-color: var(--accent);
@@ -197,4 +199,27 @@ footer {
   margin-top: 2rem;
   font-size: 0.75rem;
   color: var(--muted);
+}
+
+.reference {
+  margin-top: 1.75rem;
+  border-top: 1px solid var(--border);
+  padding-top: 1.25rem;
+  font-size: 0.85rem;
+  color: var(--muted);
+}
+
+.reference summary {
+  cursor: pointer;
+  font-weight: 600;
+  color: var(--green);
+}
+
+.reference ul {
+  margin: 0.75rem 0 0;
+  padding-left: 1.1rem;
+}
+
+.reference li {
+  margin-bottom: 0.4rem;
 }
